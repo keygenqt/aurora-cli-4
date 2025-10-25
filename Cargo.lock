@@ -5,3 +5,20 @@ version = 4
 [[package]]
 name = "aurora-cli"
 version = "0.1.0"
+dependencies = [
+ "aurora-tools",
+ "downloads",
+ "runner",
+]
+
+[[package]]
+name = "aurora-tools"
+version = "0.1.0"
+
+[[package]]
+name = "downloads"
+version = "0.1.0"
+
+[[package]]
+name = "runner"
+version = "0.1.0"

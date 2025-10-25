@@ -1,6 +1,10 @@
-[package]
-name = "aurora-cli"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+resolver = "2"
+members = ["app", "libs/aurora_tools", "libs/downloads", "libs/runner"]
 
-[dependencies]
+[profile.release]
+opt-level = "z"
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"

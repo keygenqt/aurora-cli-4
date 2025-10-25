@@ -1,0 +1,9 @@
+[package]
+name = "aurora-cli"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+aurora-tools = { path = "../libs/aurora_tools" }
+downloads = { path = "../libs/downloads" }
+runner = { path = "../libs/runner" }
