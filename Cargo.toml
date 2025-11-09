@@ -1,6 +1,12 @@
-[workspace]
-resolver = "2"
-members = ["app", "libs/aurora_tools", "libs/downloads", "libs/runner"]
+[package]
+name = "aurora-cli"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+readme = "README.cargo.md"
+description = "Fast, smart, easy, fast way to interact with Aurora OS."
+repository = "https://gitcode.com/keygenqt_vz/aurora-cli"
+authors = ["Vitaliy Zarubin <keygenqt@yandex.ru"]
 
 [profile.release]
 opt-level = "z"
@@ -8,3 +14,8 @@ strip = true
 lto = true
 codegen-units = 1
 panic = "abort"
+
+[dependencies]
+clap = { version = "4.5.26", features = ["derive"] }
+colored = "3.0.0"
+clap-cargo = "0.15.2"
