@@ -10,7 +10,7 @@ Makes life easier for developers on Aurora OS.
 - macOS
 - Linux
 
-![preview](data/preview.png)
+![preview](data/preview1.png)
 
 ### Features
 
