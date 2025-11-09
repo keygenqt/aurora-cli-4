@@ -1,4 +1,5 @@
 use clap::Args;
+use clap::CommandFactory;
 use clap::Parser;
 use clap::Subcommand;
 use std::path::PathBuf;
@@ -13,7 +14,6 @@ mod tools;
     disable_help_subcommand = true,
     disable_version_flag = true
 )]
-#[command(arg_required_else_help = true)]
 #[command(about=utils::cli_about())]
 #[command(styles=utils::cli_styles())]
 struct App {
@@ -24,6 +24,10 @@ struct App {
     /// Commands
     #[command(subcommand)]
     command: Option<Commands>,
+
+    /// Показать это сообщение и выйти
+    #[arg(short, long, action = clap::ArgAction::HelpLong)]
+    help: Option<bool>,
 }
 
 #[derive(Subcommand)]
@@ -84,34 +88,39 @@ fn main() {
         println!("{}", utils::cli_version());
         return;
     }
-    match App::parse().command.unwrap() {
-        Commands::Emulator(arg) => {
-            if arg.open {
-                println!("Emulator open: true");
-                return;
-            }
-            if arg.close {
-                println!("Emulator close: true");
-                return;
-            }
-            if let Some(path) = arg.install {
-                println!("Emulator install: {}", path.to_string_lossy());
-                return;
-            }
-            if let Some(package) = arg.run {
-                println!("Emulator run: {}", package);
-                return;
-            }
+    match App::parse().command {
+        Some(command) => match command {
+            Commands::Emulator(arg) => {
+                if arg.open {
+                    println!("Emulator open: true");
+                    return;
+                }
+                if arg.close {
+                    println!("Emulator close: true");
+                    return;
+                }
+                if let Some(path) = arg.install {
+                    println!("Emulator install: {}", path.to_string_lossy());
+                    return;
+                }
+                if let Some(package) = arg.run {
+                    println!("Emulator run: {}", package);
+                    return;
+                }
+            },
+            Commands::Services(arg) => {
+                if let Some(path) = arg.rpmsign {
+                    println!("Emulator rpmsign: {}", path.to_string_lossy());
+                    return;
+                }
+                if arg.sysroot {
+                    println!("Services sysroot: true");
+                    return;
+                }
+            },
         },
-        Commands::Services(arg) => {
-            if let Some(path) = arg.rpmsign {
-                println!("Emulator rpmsign: {}", path.to_string_lossy());
-                return;
-            }
-            if arg.sysroot {
-                println!("Services sysroot: true");
-                return;
-            }
+        None => {
+           let _ = App::command().print_help();
         },
     }
 }
