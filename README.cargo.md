@@ -8,5 +8,8 @@ Makes life easier for developers on Aurora OS.
 
 ### Features
 
-- Interacting with emulators.
-- Services for Build Tools.
+- Sign the package with a public key.
+- Build the RPM package.
+- Create sysroot (aarch64, armv7hl, x86_64).
+- Generate MOC files for Qt.
+- Show this message and exit.

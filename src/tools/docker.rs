@@ -122,14 +122,7 @@ impl Docker {
                     r#"mkdir -p {path_sysroot}/usr && cp -a {path_container} {path_sysroot}/usr && chmod -R 777 /project"#,
                 );
                 print_info!("start copy sysroot {} for arch '{}'", folder_name, arch);
-                match exec::exec_wait("docker", ["exec", &self.container, "/bin/bash", "-c", &command]) {
-                    Ok(output) => {
-                        for line in  String::from_utf8(output.stdout).unwrap().split("\n") {
-                            println!("{}", line);
-                        }
-                    },
-                    Err(_) => {},
-                }
+                exec::exec_wait("docker", ["exec", &self.container, "/bin/bash", "-c", &command])?;
             }
         }
         Ok(())
