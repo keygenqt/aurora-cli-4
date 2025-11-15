@@ -1,5 +1,8 @@
 // Global sysroot dir
+#[cfg(unix)]
 pub const SYSROOT_DIR_GLOBAL: &str = "~/.aurora-sysroot";
+#[cfg(windows)]
+pub const SYSROOT_DIR_GLOBAL: &str = "~\\.aurora-sysroot";
 // Create prefix container for sysroot
 pub const CONTAINER_SYS_PREFIX: &str = "aurora-builder-sys";
 // Create prefix container for other

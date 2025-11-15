@@ -12,4 +12,11 @@ Makes life easier for developers on Aurora OS.
 - Build the RPM package.
 - Create sysroot (aarch64, armv7hl, x86_64).
 - Generate MOC files for Qt.
-- Show this message and exit.
+
+### Install
+
+Aurora SDK (BT): https://developer.auroraos.ru/downloads/sdk_bt
+
+```shell
+cargo install aurora-cli
+```

@@ -2,7 +2,6 @@ use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 
-use rust_search::SearchBuilder;
 use uuid::Uuid;
 
 use crate::exit_error;
@@ -75,7 +74,7 @@ impl Docker {
                 "--name",
                 &self.container,
                 "-v",
-                &format!("{}:/project", mount.to_string_lossy()),
+                &format!("{}:/project", path::windows_clear(&mount.to_string_lossy().to_string())),
                 "-itd",
                 &self.image,
             ],
@@ -121,7 +120,7 @@ impl Docker {
                 let command = format!(
                     r#"mkdir -p {path_sysroot}/usr && cp -a {path_container} {path_sysroot}/usr && chmod -R 777 /project"#,
                 );
-                print_info!("start copy sysroot {} for arch '{}'", folder_name, arch);
+                print_state!("start copy sysroot {} for arch '{}'", folder_name, arch);
                 exec::exec_wait("docker", ["exec", &self.container, "/bin/bash", "-c", &command])?;
             }
         }
@@ -129,50 +128,51 @@ impl Docker {
     }
 
     pub fn moc_files(&self, project: &PathBuf) -> Result<(), Box<dyn Error>> {
-        let search: Vec<String> = SearchBuilder::default()
-            .location(project)
-            .ext("h")
-            .strict()
-            .ignore_case()
-            .build()
-            .collect();
+        let project = path::windows_clear(&project.to_string_lossy().to_string());
+        let search: Vec<String> = path::search_files_by_ext(&PathBuf::from(&project), "h");
         for path in search {
-            if path.contains("/target/") {
+            let path = path::windows_clear(&path);
+            if path.contains("/target/") || path.contains("\\target\\") {
                 continue;
             }
             if !fs::read_to_string(&path)?.contains("Q_OBJECT") {
                 continue;
             }
             print_state!("moc file: {}", path);
-            let file_docker = path.replace(&project.to_string_lossy().to_string(), "/project");
+            let file_docker = if cfg!(windows) {
+                path::windows_convert_to_unix(&path.replace(&project, "/project"))
+            } else {
+                path.replace(&project, "/project")
+            };
 
             let path = PathBuf::from(file_docker);
             let file_dir = path.parent().unwrap().to_string_lossy().to_string();
             let file_name = path.file_name().unwrap().to_string_lossy().to_string();
             let file_name_moc = file_name.replace(".h", ".moc");
 
-            let command = format!(r#"cd {file_dir} && moc {file_name} > {file_name_moc} && chmod -R 777 {file_name_moc}"#);
+            let command =
+                format!(r#"cd {file_dir} && moc {file_name} > {file_name_moc} && chmod -R 777 {file_name_moc}"#);
             exec::exec_wait("docker", ["exec", &self.container, "/bin/bash", "-c", &command])?;
         }
         Ok(())
     }
 
     pub fn rpm_build(&self, project: &PathBuf) -> Result<(), Box<dyn Error>> {
+        let project = path::windows_clear(&project.to_string_lossy().to_string());
         // Get spec file
-        let search: Vec<String> = SearchBuilder::default()
-            .location(project)
-            .ext("spec")
-            .strict()
-            .ignore_case()
-            .build()
-            .collect();
+        let search: Vec<String> = path::search_files_by_ext(&PathBuf::from(&project), "spec");
         if search.is_empty() {
             Err("spec file not found")?
         }
-        let path_spec = search.iter().next().unwrap();
-        let path_spec_docker = path_spec.replace(&project.to_string_lossy().to_string(), "/project");
+        // Get path spec docker
+        let file_spec = search.iter().next().unwrap();
+        let file_spec_docker = if cfg!(windows) {
+            path::windows_convert_to_unix(&file_spec.replace(&project, "/project"))
+        } else {
+            file_spec.replace(&project, "/project")
+        };
         // Get arch
-        let path_bin_dir = project.join("bin");
+        let path_bin_dir = PathBuf::from(&project).join("bin");
         if !path_bin_dir.exists() || !path_bin_dir.is_dir() {
             Err("create a bin folder with the executable file: <project> -> bin -> executable")?
         }
@@ -183,10 +183,15 @@ impl Docker {
                     if let Ok(entry) = entry_result {
                         let path = entry.path();
                         if path.is_file() {
-                            let path_docker = path
-                                .to_string_lossy()
-                                .replace(&project.to_string_lossy().to_string(), "/project");
-                            let command = format!(r#"file {path_docker}"#);
+                            // Get path file docker
+                            let file_bin = path.to_string_lossy();
+                            let file_bin_docker = if cfg!(windows) {
+                                path::windows_convert_to_unix(&file_bin.replace(&project, "/project"))
+                            } else {
+                                file_bin.replace(&project, "/project")
+                            };
+                            // Get arch
+                            let command = format!(r#"file {file_bin_docker}"#);
                             match exec::exec_wait("docker", ["exec", &self.container, "/bin/bash", "-c", &command]) {
                                 Ok(result) => {
                                     let output = String::from_utf8(result.stdout).unwrap();
@@ -217,10 +222,8 @@ impl Docker {
         }
         let arch = arch.unwrap();
         // Exec build
-        let command = format!(
-            r#"cd /project && rpmbuild -ba --build-in-place --target '{arch}' --define '_topdir /project' {path_spec_docker} && chmod -R 777 /project"#
-        );
-        print_state!("start build package {}", arch);
+        let command = format!("cd /project && find . -type f -exec sed -i 's/\r//g' {{}} + && rpmbuild -ba --build-in-place --target '{arch}' --define '_topdir /project' {file_spec_docker} && chmod -R 777 /project");
+        print_state!("start build package '{}'", arch);
         exec::exec_wait("docker", ["exec", &self.container, "/bin/bash", "-c", &command])?;
         // Clear temp files
         for file in vec![
@@ -233,7 +236,7 @@ impl Docker {
             "documentation.list",
             "elfbins.list",
         ] {
-            let path = PathBuf::from(project).join(file);
+            let path = PathBuf::from(project.clone()).join(file);
             if path.exists() {
                 if path.is_dir() {
                     fs::remove_dir_all(path)?;
@@ -249,7 +252,11 @@ impl Docker {
     pub fn rpm_sign(&self, rpm_path: &PathBuf) -> Result<(), Box<dyn Error>> {
         let rpm_name = rpm_path.file_name().unwrap().to_string_lossy();
         let project = &rpm_path.parent().unwrap().to_path_buf();
-        let keys = path::get_path_home().join("AuroraOS/package-signing");
+        let keys = if cfg!(windows) {
+            path::get_path_home().join(".auroraos-regular-keys")
+        } else {
+            path::get_path_home().join("AuroraOS").join("package-signing")
+        };
         if !keys.exists() || !keys.is_dir() {
             Err(format!("keys directory not found: {}", keys.to_string_lossy()))?
         }
@@ -264,11 +271,8 @@ impl Docker {
         // Copy to project
         fs::copy(cert, project.join("regular_cert.pem"))?;
         fs::copy(key, project.join("regular_key.pem"))?;
-
         print_state!("start sign package '{}'", rpm_name);
-        let command = format!(
-            r#"rpmsign-external sign --force --key=/project/regular_key.pem --cert=/project/regular_cert.pem /project/{rpm_name}"#
-        );
+        let command = format!("rpmsign-external sign --force --key=/project/regular_key.pem --cert=/project/regular_cert.pem /project/{rpm_name}");
         fn clear(project: &PathBuf) {
             let _ = fs::remove_file(project.join("regular_cert.pem"));
             let _ = fs::remove_file(project.join("regular_key.pem"));
