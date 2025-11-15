@@ -2,13 +2,11 @@ use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 
-use crate::exit_error;
 use crate::exit_info;
 use crate::print_info;
 use crate::print_warning;
 use crate::tools::constants;
 use crate::tools::docker::Docker;
-use crate::tools::exec;
 use crate::tools::path;
 use ctrlc;
 use inquire::Confirm;
@@ -59,7 +57,7 @@ impl Sysroot {
                             fs::remove_dir_all(sysroot)?;
                             docker.stop_container();
                             crate::print_error!("{}", err);
-                            exit_error!("failed convert symlink, your enable Developer Mode?");
+                            crate::exit_error!("failed convert symlink, your enable Developer Mode?");
                         }
                     }
                 }
@@ -87,10 +85,10 @@ impl Sysroot {
             let bash = "C:\\Program Files\\Git\\bin\\bash.exe";
             let path = sysroot.join(arch).to_string_lossy().to_string();
             let path_unix = path::windows_convert_to_unix(&path);
-            match exec::exec_wait(bash, ["-c", &format!("find {path_unix} -type l")]) {
+            match crate::tools::exec::exec_wait(bash, ["-c", &format!("find {path_unix} -type l")]) {
                 Ok(output) => {
                     for path_link_unix in String::from_utf8(output.stdout).unwrap().split("\n") {
-                        let result = exec::exec_wait(bash, ["-c", &format!("readlink -f {path_link_unix}")]).unwrap();
+                        let result = crate::tools::exec::exec_wait(bash, ["-c", &format!("readlink -f {path_link_unix}")]).unwrap();
                         let path_file_owner = String::from_utf8(result.stdout).unwrap();
                         let path_file_owner = path_file_owner.trim();
                         if path_file_owner.is_empty() {

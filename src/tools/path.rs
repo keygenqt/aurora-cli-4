@@ -113,6 +113,7 @@ pub fn windows_convert_to_unix(path: &str) -> String {
     path.replace("\\", "/")
 }
 
+#[allow(dead_code)]
 pub fn windows_convert_from_unix(path: &str) -> String {
     path.replace("/", "\\").replace("/c", "C:")
 }

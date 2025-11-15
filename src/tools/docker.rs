@@ -221,10 +221,28 @@ impl Docker {
             Err(format!("arch binary file not found"))?
         }
         let arch = arch.unwrap();
-        // Exec build
-        let command = format!("cd /project && find . -type f -exec sed -i 's/\r//g' {{}} + && rpmbuild -ba --build-in-place --target '{arch}' --define '_topdir /project' {file_spec_docker} && chmod -R 777 /project");
+        // Remove \r
+        if cfg!(windows) {
+            exec::exec_wait(
+                "docker",
+                [
+                    "exec",
+                    &self.container,
+                    "/bin/bash",
+                    "-c",
+                    &format!("cd /project && find . -type f -exec sed -i 's/\r//g' {{}} +"),
+                ],
+            )?;
+        };
         print_state!("start build package '{}'", arch);
-        exec::exec_wait("docker", ["exec", &self.container, "/bin/bash", "-c", &command])?;
+        // Exec build
+        exec::exec_wait("docker", [
+            "exec",
+            &self.container,
+            "/bin/bash",
+            "-c",
+            &format!("cd /project && rpmbuild -ba --build-in-place --target '{arch}' --define '_topdir /project' {file_spec_docker} && chmod -R 777 /project"),
+            ])?;
         // Clear temp files
         for file in vec![
             "BUILDROOT",
