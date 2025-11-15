@@ -112,7 +112,7 @@ impl Docker {
         for arch in Arch::entries() {
             let path_sysroot = format!("/project/{}", arch);
             let path = paths.iter().filter(|e| e.contains(&arch)).next();
-            for folder_name in ["lib", "lib64", "include"] {
+            for folder_name in ["lib", "include"] {
                 let path_container = if let Some(path) = path {
                     format!("/opt/cross/{}/sys-root/usr/{}", path, folder_name)
                 } else {
