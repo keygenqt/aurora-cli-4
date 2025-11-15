@@ -4,8 +4,13 @@ use clap::Parser;
 use clap::Subcommand;
 use std::path::PathBuf;
 
-use tools::utils;
+use crate::features::moc::QtMoc;
+use crate::features::rpm::RpmBuild;
+use crate::features::sign::RpmSign;
+use crate::features::sysroot::Sysroot;
+use crate::tools::utils;
 
+mod features;
 mod tools;
 
 #[derive(Parser)]
@@ -72,11 +77,19 @@ pub struct EmulatorArgs {
 pub struct ServicesArgs {
     /// Подпись пакета публичным ключем
     #[arg(short, long, value_name = "path")]
-    rpmsign: Option<PathBuf>,
+    keysign: Option<PathBuf>,
+
+    /// Собрать rpm пакет
+    #[arg(short, long, value_name = "path")]
+    rpmbuild: Option<PathBuf>,
 
     /// Создать sysroot (aarch64, armv7hl, x86_64)
     #[arg(short, long, default_value_t = false)]
     sysroot: bool,
+
+    /// Генерация mос файлов для Qt
+    #[arg(short, long, value_name = "path")]
+    moc: Option<PathBuf>,
 
     /// Показать это сообщение и выйти
     #[clap(short='h', long, action = clap::ArgAction::HelpLong)]
@@ -92,35 +105,55 @@ fn main() {
         Some(command) => match command {
             Commands::Emulator(arg) => {
                 if arg.open {
-                    println!("Emulator open: true");
+                    println!("@todo coming soon");
                     return;
                 }
                 if arg.close {
-                    println!("Emulator close: true");
+                    println!("@todo coming soon");
                     return;
                 }
-                if let Some(path) = arg.install {
-                    println!("Emulator install: {}", path.to_string_lossy());
+                if let Some(_) = arg.install {
+                    println!("@todo coming soon");
                     return;
                 }
-                if let Some(package) = arg.run {
-                    println!("Emulator run: {}", package);
+                if let Some(_) = arg.run {
+                    println!("@todo coming soon");
                     return;
                 }
-            },
+            }
             Commands::Services(arg) => {
-                if let Some(path) = arg.rpmsign {
-                    println!("Emulator rpmsign: {}", path.to_string_lossy());
+                if let Some(path) = arg.keysign {
+                    match RpmSign::sign(path) {
+                        Ok(_) => print_success!("rpm sign successfully"),
+                        Err(err) => exit_error!(err),
+                    }
+                    return;
+                }
+                if let Some(path) = arg.rpmbuild {
+                    match RpmBuild::build(path) {
+                        Ok(_) => print_success!("rpm build successfully"),
+                        Err(err) => exit_error!(err),
+                    }
+                    return;
+                }
+                if let Some(path) = arg.moc {
+                    match QtMoc::upgrade(path) {
+                        Ok(_) => print_success!("moc files successfully created"),
+                        Err(err) => exit_error!(err),
+                    }
                     return;
                 }
                 if arg.sysroot {
-                    println!("Services sysroot: true");
+                    match Sysroot::upgrade() {
+                        Ok(path) => print_success!("sysroot successfully created: {}", path.to_string_lossy()),
+                        Err(err) => exit_error!(err),
+                    }
                     return;
                 }
-            },
+            }
         },
         None => {
-           let _ = App::command().print_help();
-        },
+            let _ = App::command().print_help();
+        }
     }
 }

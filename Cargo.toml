@@ -1,6 +1,6 @@
 [package]
 name = "aurora-cli"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 license = "Apache-2.0"
 readme = "README.cargo.md"
@@ -17,5 +17,9 @@ panic = "abort"
 
 [dependencies]
 clap = { version = "4.5.51", features = ["derive"] }
-colored = "3.0.0"
+uuid = {version = "1.18.1", features = ["v4"]}
+rust_search = "2.1.0"
 clap-cargo = "0.18.3"
+colored = "3.0.0"
+inquire = "0.9.1"
+ctrlc = "3.5.1"
