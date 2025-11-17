@@ -58,6 +58,22 @@ macro_rules! print_state {
     }};
 }
 
+/// Pretty print state fo debug
+#[allow(unused_macros)]
+#[macro_export]
+macro_rules! print_debug {
+    ($arg:tt) => {
+        if crate::tools::constants::PRINT_DEBUG {
+            println!("{}", format!("\x1b[1m\x1b[93mdebug\x1b[0m: {}", $arg))
+        }
+    };
+    ($($arg:tt)*) => {{
+        if crate::tools::constants::PRINT_DEBUG {
+            println!("{}", format!("\x1b[1m\x1b[93mdebug\x1b[0m: {}", format!($($arg)*)))
+        }
+    }};
+}
+
 /// Print info and exit
 #[allow(unused_macros)]
 #[macro_export]

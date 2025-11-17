@@ -6,8 +6,10 @@ use uuid::Uuid;
 
 use crate::exit_error;
 use crate::exit_info;
+use crate::print_debug;
 use crate::print_info;
 use crate::print_state;
+use crate::print_success;
 use crate::print_warning;
 use crate::tools::arch::Arch;
 use crate::tools::constants;
@@ -79,19 +81,19 @@ impl Docker {
                 &self.image,
             ],
         ) {
-            Ok(_) => print_info!("run container '{}'", &self.container),
+            Ok(_) => print_debug!("run container '{}'", &self.container),
             Err(_) => exit_error!("failed to run container"),
         }
     }
 
     pub fn stop_container(&self) {
         match exec::exec_wait("docker", ["stop", "container", &self.container]) {
-            Ok(_) => print_info!("stop container '{}'", &self.container),
+            Ok(_) => print_debug!("stop container '{}'", &self.container),
             Err(_) => exit_error!("failed stop container"),
         }
     }
 
-    pub fn copy_sysroots(&self) -> Result<(), Box<dyn Error>> {
+    pub fn copy_sysroots(&self, sysroot: &PathBuf, sysroot_unix: Option<&PathBuf>) -> Result<(), Box<dyn Error>> {
         let paths = match exec::exec_wait("docker", ["exec", &self.container, "/bin/bash", "-c", "ls /opt/cross"]) {
             Ok(output) => String::from_utf8(output.stdout)
                 .unwrap()
@@ -108,20 +110,31 @@ impl Docker {
                 .collect::<Vec<String>>(),
             Err(_) => Err("failed get sysroot directories")?,
         };
-        for arch in Arch::entries() {
-            let path_sysroot = format!("/project/{}", arch);
-            let path = paths.iter().filter(|e| e.contains(&arch)).next();
-            for folder_name in ["lib", "include"] {
-                let path_container = if let Some(path) = path {
-                    format!("/opt/cross/{}/sys-root/usr/{}", path, folder_name)
-                } else {
-                    format!("/usr/{}", folder_name)
-                };
-                let command = format!(
-                    r#"mkdir -p {path_sysroot}/usr && cp -a {path_container} {path_sysroot}/usr && chmod -R 777 /project"#,
-                );
-                print_state!("start copy sysroot {} for arch '{}'", folder_name, arch);
-                exec::exec_wait("docker", ["exec", &self.container, "/bin/bash", "-c", &command])?;
+        // Copy
+        for sysroot_path in vec![
+            Some(sysroot),
+            sysroot_unix,
+        ] {
+            if let Some(sysroot_path) = sysroot_path {
+                let sysroot_name = sysroot_path.file_name().unwrap().to_str().unwrap();
+                print_info!("copy sysroot for {}", sysroot_path.to_string_lossy());
+                for arch in Arch::entries() {
+                    let path_sysroot = format!("/project/{}/{}", sysroot_name, arch);
+                    let path = paths.iter().filter(|e| e.contains(&arch)).next();
+                    for folder_name in ["lib", "include"] {
+                        let path_container = if let Some(path) = path {
+                            format!("/opt/cross/{}/sys-root/usr/{}", path, folder_name)
+                        } else {
+                            format!("/usr/{}", folder_name)
+                        };
+                        let command = format!(
+                            "mkdir -p {path_sysroot}/usr && cp -a {path_container} {path_sysroot}/usr && chmod -R 777 /project/{sysroot_name}",
+                        );
+                        print_state!("start copy {} for arch '{}'", folder_name, arch);
+                        exec::exec_wait("docker", ["exec", &self.container, "/bin/bash", "-c", &command])?;
+                    }
+                }
+                print_success!("sysroot successfully created: {}", sysroot_path.to_string_lossy());
             }
         }
         Ok(())
@@ -151,7 +164,7 @@ impl Docker {
             let file_name_moc = file_name.replace(".h", ".moc");
 
             let command =
-                format!(r#"cd {file_dir} && moc {file_name} > {file_name_moc} && chmod -R 777 {file_name_moc}"#);
+                format!("cd {file_dir} && moc {file_name} > {file_name_moc} && chmod -R 777 {file_name_moc}");
             exec::exec_wait("docker", ["exec", &self.container, "/bin/bash", "-c", &command])?;
         }
         Ok(())
@@ -221,7 +234,7 @@ impl Docker {
             Err(format!("arch binary file not found"))?
         }
         let arch = arch.unwrap();
-        // Remove \r
+        // Fix \r in spec file
         if cfg!(windows) {
             exec::exec_wait(
                 "docker",
@@ -230,7 +243,7 @@ impl Docker {
                     &self.container,
                     "/bin/bash",
                     "-c",
-                    &format!("cd /project && find . -type f -exec sed -i 's/\r//g' {{}} +"),
+                    &format!("cd /project && find . -name *.spec -type f -exec sed -i 's/\r//g' {{}} +"),
                 ],
             )?;
         };

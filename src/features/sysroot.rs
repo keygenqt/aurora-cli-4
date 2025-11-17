@@ -14,8 +14,8 @@ use inquire::Confirm;
 pub struct Sysroot {}
 
 impl Sysroot {
-    pub fn upgrade() -> Result<PathBuf, Box<dyn Error>> {
-        let sysroot = &path::get_relative_path(&PathBuf::from(constants::SYSROOT_DIR_GLOBAL));
+    pub fn upgrade() -> Result<(), Box<dyn Error>> {
+        let sysroot = &path::get_relative_path(&PathBuf::from(constants::SYSROOT_GLOBAL_DIR_PATH));
         // Remove dir if exist
         if sysroot.exists() {
             print_warning!("data found!");
@@ -36,10 +36,30 @@ impl Sysroot {
         }
         // Create folder for sysroot
         fs::create_dir_all(sysroot)?;
+        // Create unix sysroot
+        let sysroot_unix = if cfg!(windows) {
+            match Confirm::new(&format!("Create unix sysroot for cross-compilation?"))
+                .with_default(false)
+                .prompt()
+            {
+                Ok(result) => if result {
+                    let sysroot_unix = &sysroot.parent().unwrap().join(constants::SYSROOT_UNIX_DIR_NAME);
+                    if sysroot_unix.exists() {
+                        fs::remove_dir_all(sysroot_unix)?;
+                    }
+                    Some(&sysroot_unix.clone())
+                } else {
+                    None
+                }
+                Err(_) => None,
+            }
+        } else {
+            None
+        };
         // Init docker
         let docker = &Docker::new(Some(constants::CONTAINER_SYS_PREFIX.to_string()));
         // Up container
-        docker.run_container(&sysroot);
+        docker.run_container(&sysroot.parent().unwrap().to_path_buf());
         // Catch exit
         let docker_move = docker.clone();
         let _ = ctrlc::set_handler(move || {
@@ -47,15 +67,15 @@ impl Sysroot {
             exit_info!("work has stopped")
         });
         // Copy sysroot
-        match docker.copy_sysroots() {
+        match docker.copy_sysroots(sysroot, sysroot_unix) {
             Ok(_) => {
                 #[cfg(windows)]
                 {
                     match Self::convert_symlink(&sysroot) {
                         Ok(_) => docker.stop_container(),
                         Err(err) => {
-                            fs::remove_dir_all(sysroot)?;
                             docker.stop_container();
+                            fs::remove_dir_all(sysroot)?;
                             crate::print_error!("{}", err);
                             crate::exit_error!("failed convert symlink, your enable Developer Mode?");
                         }
@@ -66,13 +86,10 @@ impl Sysroot {
                     docker.stop_container();
                 }
             }
-            Err(_) => {
-                // Stop container
-                docker.stop_container()
-            }
+            Err(_) => docker.stop_container()
         }
         // Done
-        Ok(sysroot.to_path_buf())
+        Ok(())
     }
 
     #[cfg(windows)]
@@ -117,6 +134,7 @@ impl Sysroot {
                 Err(_) => Err("fail execute find symlink. Your install git: https://git-scm.com/install/windows?")?,
             }
         }
+        crate::print_success!("symlink convert successfully");
         Ok(())
     }
 }

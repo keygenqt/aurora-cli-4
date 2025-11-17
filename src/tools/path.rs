@@ -41,7 +41,8 @@ pub fn get_relative_path(path: &PathBuf) -> PathBuf {
 pub fn get_relative_path(path: &PathBuf) -> PathBuf {
     let path_str = windows_clear(&path.to_string_lossy().to_string());
     // Check relative path
-    let path_str = if !path_str.starts_with(".\\")
+    let path_str = if !path_str.contains(":")
+        && !path_str.starts_with(".\\")
         && !path_str.starts_with("~\\")
         && !path_str.starts_with("\\")
         && !path_str.contains(":\\")
@@ -106,7 +107,7 @@ pub fn search_files_by_ext(path: &PathBuf, ext: &str) -> Vec<String> {
 }
 
 pub fn windows_clear(path: &str) -> String {
-    path.replace("\\\\?\\C:", "C:")
+    path.replace("\\\\?\\", "")
 }
 
 pub fn windows_convert_to_unix(path: &str) -> String {

@@ -145,7 +145,7 @@ fn main() {
                 }
                 if arg.sysroot {
                     match Sysroot::upgrade() {
-                        Ok(path) => print_success!("sysroot successfully created: {}", path.to_string_lossy()),
+                        Ok(_) => {},
                         Err(err) => exit_error!(err),
                     }
                     return;
