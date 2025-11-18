@@ -317,4 +317,20 @@ impl Docker {
         }
         Ok(())
     }
+
+    pub fn rpm_validate(&self, rpm: &PathBuf) -> Result<String, Box<dyn Error>> {
+        let rpm_docker = format!("/project/{}", rpm.file_name().unwrap().to_string_lossy());
+        let command = format!("rpm-validator -p regular {rpm_docker}");
+        match exec::exec_wait("docker", ["exec", &self.container, "/bin/bash", "-c", &command]) {
+            Ok(output) => {
+                let stderr = String::from_utf8(output.stderr)?.trim().to_string();
+                if stderr.contains("(ERROR)") {
+                    Err(stderr)?
+                } else {
+                    Ok("validation was successful".into())
+                }
+            },
+            Err(err) => Err(err)?
+        }
+    }
 }

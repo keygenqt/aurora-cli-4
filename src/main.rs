@@ -8,6 +8,7 @@ use crate::features::moc::QtMoc;
 use crate::features::rpm::RpmBuild;
 use crate::features::sign::RpmSign;
 use crate::features::sysroot::Sysroot;
+use crate::features::validator::Validator;
 use crate::tools::utils;
 
 mod features;
@@ -75,6 +76,10 @@ pub struct EmulatorArgs {
 #[derive(Args)]
 #[command(arg_required_else_help = true)]
 pub struct ServicesArgs {
+    /// Валидация rpm пакета
+    #[arg(short, long, value_name = "path")]
+    validate: Option<PathBuf>,
+
     /// Подпись пакета публичным ключем
     #[arg(short, long, value_name = "path")]
     keysign: Option<PathBuf>,
@@ -122,6 +127,13 @@ fn main() {
                 }
             }
             Commands::Services(arg) => {
+                if let Some(path) = arg.validate {
+                    match Validator::validate(path) {
+                        Ok(output) => print_success!(output),
+                        Err(err) => exit_error!(err),
+                    }
+                    return;
+                }
                 if let Some(path) = arg.keysign {
                     match RpmSign::sign(path) {
                         Ok(_) => print_success!("rpm sign successfully"),
