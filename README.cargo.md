@@ -12,6 +12,7 @@ Makes life easier for developers on Aurora OS.
 - Build the RPM package.
 - Create sysroot (aarch64, armv7hl, x86_64).
 - Generate MOC files for Qt.
+- Validate rpm package.
 
 ### Install
 
