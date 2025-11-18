@@ -3,7 +3,8 @@
 pub const SYSROOT_GLOBAL_DIR_PATH: &str = "~/.aurora-sysroot";
 #[cfg(windows)]
 pub const SYSROOT_GLOBAL_DIR_PATH: &str = "~\\.aurora-sysroot";
-#[cfg(windows)]
+
+// Name sysroot unix dir
 pub const SYSROOT_UNIX_DIR_NAME: &str = ".aurora-sysroot-unix";
 
 // Create prefix container for sysroot
