@@ -4,7 +4,7 @@ version = "0.0.9"
 edition = "2021"
 license = "Apache-2.0"
 readme = "README.cargo.md"
-description = "Fast, smart, easy, fast way to interact with Aurora OS."
+description = "Fast way to interact with Aurora OS."
 repository = "https://gitcode.com/keygenqt_vz/aurora-cli"
 authors = ["Vitaliy Zarubin <keygenqt@yandex.ru"]
 
