@@ -15,4 +15,4 @@ pub const CONTAINER_PREFIX_SYS: &str = "aurora-builder-sys";
 pub const CONTAINER_PREFIX: &str = "aurora-builder";
 
 // Search name image Build Tools
-pub const BT_IMAGES_SEARCH: &'static [&'static str] = &[r"^(aurora).+(tools).+\:.+", r"^(hub).+(tools).+\:.+"];
+pub const BT_IMAGES_SEARCH: &'static [&'static str] = &[r"^(aurora).+(build).+\:.+", r"^(hub).+(build).+\:.+"];

@@ -34,7 +34,7 @@ impl Exec {
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        Self::_command(program, args, false)
+        Self::_command(program, args, false, false)
     }
 
     pub fn command_verbose<I, S>(program: &str, args: I) -> Result<ExecResult, Box<dyn std::error::Error>>
@@ -42,10 +42,24 @@ impl Exec {
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        Self::_command(program, args, true)
+        Self::_command(program, args, true, false)
     }
 
-    fn _command<I, S>(program: &str, args: I, verbose: bool) -> Result<ExecResult, Box<dyn std::error::Error>>
+    #[allow(dead_code)]
+    pub fn command_ignore_error<I, S>(program: &str, args: I) -> Result<ExecResult, Box<dyn std::error::Error>>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        Self::_command(program, args, false, true)
+    }
+
+    fn _command<I, S>(
+        program: &str,
+        args: I,
+        verbose: bool,
+        ignore_error: bool,
+    ) -> Result<ExecResult, Box<dyn std::error::Error>>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
@@ -85,7 +99,7 @@ impl Exec {
         }
 
         let status = child.wait().expect("Failed to wait for child process");
-        if !status.success() {
+        if !ignore_error && !status.success() {
             Err(resout.join("\n"))?
         } else {
             Ok(ExecResult {

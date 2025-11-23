@@ -99,13 +99,18 @@ impl Sysroot {
             let bash = "C:\\Program Files\\Git\\bin\\bash.exe";
             let path = sysroot.join(arch).to_string_lossy().to_string();
             let path_unix = path::windows_convert_to_unix(&path);
-            match crate::tools::Exec::command(bash, ["-c", &format!("find {path_unix} -type l")]) {
-                Ok(output) => {
-                    for path_link_unix in String::from_utf8(output.stdout).unwrap().split("\n") {
-                        let result =
-                            crate::tools::Exec::command(bash, ["-c", &format!("readlink -f {path_link_unix}")])
-                                .unwrap();
-                        let path_file_owner = String::from_utf8(result.stdout).unwrap();
+            match crate::tools::exec::Exec::command(bash, ["-c", &format!("find {path_unix} -type l")]) {
+                Ok(result) => {
+                    for path_link_unix in result.stdout.iter() {
+                        let result = crate::tools::exec::Exec::command_ignore_error(
+                            bash,
+                            ["-c", &format!("readlink -f {path_link_unix}")],
+                        )
+                        .unwrap();
+                        if result.stdout.is_empty() {
+                            continue;
+                        }
+                        let path_file_owner = result.stdout.iter().next().unwrap();
                         let path_file_owner = path_file_owner.trim();
                         if path_file_owner.is_empty() {
                             continue;
