@@ -42,14 +42,16 @@ impl Sysroot {
                 .with_default(false)
                 .prompt()
             {
-                Ok(result) => if result {
-                    let sysroot_unix = &sysroot.parent().unwrap().join(constants::SYSROOT_UNIX_DIR_NAME);
-                    if sysroot_unix.exists() {
-                        fs::remove_dir_all(sysroot_unix)?;
+                Ok(result) => {
+                    if result {
+                        let sysroot_unix = &sysroot.parent().unwrap().join(constants::SYSROOT_UNIX_DIR_NAME);
+                        if sysroot_unix.exists() {
+                            fs::remove_dir_all(sysroot_unix)?;
+                        }
+                        Some(&sysroot_unix.clone())
+                    } else {
+                        None
                     }
-                    Some(&sysroot_unix.clone())
-                } else {
-                    None
                 }
                 Err(_) => None,
             }
@@ -57,39 +59,34 @@ impl Sysroot {
             None
         };
         // Init docker
-        let docker = &Docker::new(Some(constants::CONTAINER_SYS_PREFIX.to_string()));
+        let docker_image = match Docker::get_image() {
+            Ok(image) => image,
+            Err(err) => crate::exit_error!("{}", err),
+        };
+        let docker = &Docker::new_sys(docker_image);
         // Up container
-        docker.run_container(&sysroot.parent().unwrap().to_path_buf());
+        docker.run_container(&sysroot.parent().unwrap().to_path_buf())?;
         // Catch exit
         let docker_move = docker.clone();
         let _ = ctrlc::set_handler(move || {
             docker_move.stop_container();
             exit_info!("work has stopped")
         });
-        // Copy sysroot
-        match docker.copy_sysroots(sysroot, sysroot_unix) {
-            Ok(_) => {
-                #[cfg(windows)]
-                {
-                    match Self::convert_symlink(&sysroot) {
-                        Ok(_) => docker.stop_container(),
-                        Err(err) => {
-                            docker.stop_container();
-                            fs::remove_dir_all(sysroot)?;
-                            crate::print_error!("{}", err);
-                            crate::exit_error!("failed convert symlink, your enable Developer Mode?");
-                        }
-                    }
-                }
-                #[cfg(unix)]
-                {
-                    docker.stop_container();
-                }
+        // Run build
+        let result = docker.copy_sysroots(sysroot, sysroot_unix);
+        // Stop container
+        docker.stop_container();
+        // Convert symbolic link for windows
+        #[cfg(windows)]
+        {
+            let result = Self::convert_symlink(&sysroot);
+            if result.is_err() {
+                fs::remove_dir_all(sysroot)?;
+                Err("failed convert symlink, your enable Developer Mode?")?;
             }
-            Err(_) => docker.stop_container()
         }
-        // Done
-        Ok(())
+        // Result
+        result
     }
 
     #[cfg(windows)]
@@ -102,10 +99,12 @@ impl Sysroot {
             let bash = "C:\\Program Files\\Git\\bin\\bash.exe";
             let path = sysroot.join(arch).to_string_lossy().to_string();
             let path_unix = path::windows_convert_to_unix(&path);
-            match crate::tools::exec::exec_wait(bash, ["-c", &format!("find {path_unix} -type l")]) {
+            match crate::tools::Exec::command(bash, ["-c", &format!("find {path_unix} -type l")]) {
                 Ok(output) => {
                     for path_link_unix in String::from_utf8(output.stdout).unwrap().split("\n") {
-                        let result = crate::tools::exec::exec_wait(bash, ["-c", &format!("readlink -f {path_link_unix}")]).unwrap();
+                        let result =
+                            crate::tools::Exec::command(bash, ["-c", &format!("readlink -f {path_link_unix}")])
+                                .unwrap();
                         let path_file_owner = String::from_utf8(result.stdout).unwrap();
                         let path_file_owner = path_file_owner.trim();
                         if path_file_owner.is_empty() {

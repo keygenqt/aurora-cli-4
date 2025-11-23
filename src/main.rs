@@ -129,7 +129,7 @@ fn main() {
             Commands::Services(arg) => {
                 if let Some(path) = arg.validate {
                     match Validator::validate(path) {
-                        Ok(output) => print_success!(output),
+                        Ok(_) => print_success!("no errors found during validation"),
                         Err(err) => exit_error!(err),
                     }
                     return;

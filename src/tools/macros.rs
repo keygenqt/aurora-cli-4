@@ -58,32 +58,16 @@ macro_rules! print_state {
     }};
 }
 
-/// Pretty print state fo debug
-#[allow(unused_macros)]
-#[macro_export]
-macro_rules! print_debug {
-    ($arg:tt) => {
-        if crate::tools::constants::PRINT_DEBUG {
-            println!("{}", format!("\x1b[1m\x1b[93mdebug\x1b[0m: {}", $arg))
-        }
-    };
-    ($($arg:tt)*) => {{
-        if crate::tools::constants::PRINT_DEBUG {
-            println!("{}", format!("\x1b[1m\x1b[93mdebug\x1b[0m: {}", format!($($arg)*)))
-        }
-    }};
-}
-
 /// Print info and exit
 #[allow(unused_macros)]
 #[macro_export]
 macro_rules! exit_info {
     ($arg:tt) => {{
-        println!("{}", format!("\x1b[1m\x1b[94minfo\x1b[0m: {}", $arg));
+        println!("{}", format!("\x1b[1m\x1b[94minfo\x1b[0m: {}", $arg).to_lowercase());
         std::process::exit(1);
     }};
     ($($arg:tt)*) => {{
-        println!("{}", format!("\x1b[1m\x1b[94minfo\x1b[0m: {}", format!($($arg)*)));
+        println!("{}", format!("\x1b[1m\x1b[94minfo\x1b[0m: {}", format!($($arg)*)).to_lowercase());
         std::process::exit(1);
     }};
 }
@@ -93,11 +77,11 @@ macro_rules! exit_info {
 #[macro_export]
 macro_rules! exit_error {
     ($arg:tt) => {{
-        println!("{}", format!("\x1b[1m\x1b[91merror\x1b[0m: {}", $arg));
+        println!("{}", format!("\x1b[1m\x1b[91merror\x1b[0m: {}", $arg).to_lowercase());
         std::process::exit(1);
     }};
     ($($arg:tt)*) => {{
-        println!("{}", format!("\x1b[1m\x1b[91merror\x1b[0m: {}", format!($($arg)*)));
+        println!("{}", format!("\x1b[1m\x1b[91merror\x1b[0m: {}", format!($($arg)*)).to_lowercase());
         std::process::exit(1);
     }};
 }
