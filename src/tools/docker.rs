@@ -71,7 +71,7 @@ impl Docker {
     }
 
     pub fn stop_container(&self) {
-        let _ = Exec::command("docker", ["stop", "container", &self.container]);
+        let _ = Exec::command("docker", ["stop", &self.container]);
     }
 
     pub fn moc_files(&self, path: &PathBuf) -> Result<(), Box<dyn Error>> {
