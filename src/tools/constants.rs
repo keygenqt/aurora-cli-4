@@ -14,5 +14,8 @@ pub const CONTAINER_PREFIX_SYS: &str = "aurora-builder-sys";
 // Create prefix container for other
 pub const CONTAINER_PREFIX: &str = "aurora-builder";
 
+// Aurora SDK ssh key path
+pub const SSH_EMULATOR_KEY_PATH: &str = "~/AuroraOS/vmshare/ssh/private_keys/sdk";
+
 // Search name image Build Tools
 pub const BT_IMAGES_SEARCH: &'static [&'static str] = &[r"^(aurora).+(build).+\:.+", r"^(hub).+(build).+\:.+"];

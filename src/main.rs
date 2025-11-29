@@ -4,11 +4,13 @@ use clap::Parser;
 use clap::Subcommand;
 use std::path::PathBuf;
 
-use crate::features::moc::QtMoc;
-use crate::features::rpm::RpmBuild;
-use crate::features::sign::RpmSign;
-use crate::features::sysroot::Sysroot;
-use crate::features::validator::Validator;
+use crate::features::emulator::install::EmulatorPackageInstall;
+use crate::features::emulator::run::EmulatorRunPackage;
+use crate::features::services::moc::QtMoc;
+use crate::features::services::rpm::RpmBuild;
+use crate::features::services::sign::RpmSign;
+use crate::features::services::sysroot::Sysroot;
+use crate::features::services::validator::Validator;
 use crate::tools::utils;
 
 mod features;
@@ -51,14 +53,6 @@ enum Commands {
 #[derive(Args)]
 #[command(arg_required_else_help = true)]
 pub struct EmulatorArgs {
-    /// Открыть эмулятор
-    #[arg(short, long, default_value_t = false)]
-    open: bool,
-
-    /// Закрыть эмулятор
-    #[arg(short, long, default_value_t = false)]
-    close: bool,
-
     /// Установить пакет
     #[arg(short, long, value_name = "path")]
     install: Option<PathBuf>,
@@ -101,7 +95,8 @@ pub struct ServicesArgs {
     help: Option<bool>,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     if App::parse().version {
         println!("{}", utils::cli_version());
         return;
@@ -109,20 +104,18 @@ fn main() {
     match App::parse().command {
         Some(command) => match command {
             Commands::Emulator(arg) => {
-                if arg.open {
-                    println!("@todo coming soon");
+                if let Some(path) = arg.install {
+                    match EmulatorPackageInstall::exec(path) {
+                        Ok(package) => print_success!("package '{}' was installed successfully", package),
+                        Err(err) => exit_error!(err),
+                    }
                     return;
                 }
-                if arg.close {
-                    println!("@todo coming soon");
-                    return;
-                }
-                if let Some(_) = arg.install {
-                    println!("@todo coming soon");
-                    return;
-                }
-                if let Some(_) = arg.run {
-                    println!("@todo coming soon");
+                if let Some(package) = arg.run {
+                    match EmulatorRunPackage::exec(package) {
+                        Ok(_) => print_success!("task was completed successfully"),
+                        Err(err) => exit_error!(err),
+                    }
                     return;
                 }
             }

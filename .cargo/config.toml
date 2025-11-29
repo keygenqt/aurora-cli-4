@@ -1,0 +1,3 @@
+# @todo warning: the following packages contain code that will be rejected by a future version of Rust: russh v0.54.6
+[future-incompat-report]
+frequency = "never"

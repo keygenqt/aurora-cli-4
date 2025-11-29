@@ -1,7 +1,10 @@
 pub mod arch;
 pub mod constants;
 pub mod docker;
+pub mod emulator;
 pub mod exec;
 pub mod macros;
+pub mod package;
 pub mod path;
+pub mod ssh;
 pub mod utils;
