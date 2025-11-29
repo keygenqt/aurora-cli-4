@@ -17,6 +17,8 @@ Makes life easier for developers on Aurora OS.
 - Create sysroot (aarch64, armv7hl, x86_64).
 - Generate MOC files for Qt.
 - Validate rpm package.
+- Install package to emulator.
+- Run package on emulator.
 
 ### Install
 
