@@ -2,7 +2,7 @@ use clap::builder::Styles;
 use colored::Colorize;
 
 pub fn cli_version() -> &'static str {
-    "0.1.0"
+    "0.1.1"
 }
 
 pub fn cli_about() -> String {
