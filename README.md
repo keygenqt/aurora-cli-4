@@ -19,7 +19,7 @@ Makes life easier for developers on Aurora OS.
 - Validate rpm package.
 - Install package to emulator.
 - Run package on emulator.
-- Docker-in-Docker support via `AURORA_CLI_CONTAINER_IN_CONTAINER` env variable.
+- Docker-in-Docker support via `AURORA_CLI_CONTAINER` and `AURORA_CLI_MOUNT` env variables.
 
 ### Install
 

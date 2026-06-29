@@ -1,4 +1,5 @@
 use std::env;
+use std::path::Path;
 use std::path::PathBuf;
 
 use walkdir::WalkDir;
@@ -77,6 +78,22 @@ pub fn get_relative_path_canonicalize(path: &PathBuf) -> Option<PathBuf> {
             Err(_) => None,
         }
     }
+}
+
+/// Resolve container path to host path for Docker-in-Docker volume mounts.
+pub fn get_resolve_host_path<P: AsRef<Path>>(path: P) -> String {
+    let path = path.as_ref();
+    if let Ok(mount_env) = env::var("AURORA_CLI_MOUNT") {
+        if let Some((container_root, host_root)) = mount_env.split_once(':') {
+            let path_str = path.to_string_lossy().to_string();
+            if path_str.starts_with(container_root) {
+                let relative = path_str.strip_prefix(container_root).unwrap();
+                let resolved = PathBuf::from(host_root).join(relative.trim_start_matches('/'));
+                return resolved.to_string_lossy().to_string();
+            }
+        }
+    }
+    path.to_string_lossy().to_string()
 }
 
 pub fn search_files_by_ext(path: &PathBuf, ext: &str) -> Vec<String> {

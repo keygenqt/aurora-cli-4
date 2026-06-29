@@ -104,7 +104,7 @@ impl Exec {
         } else {
             Ok(ExecResult {
                 stdout: resout.clone(),
-                stderr: resout.clone(),
+                stderr: reserr.clone(),
             })
         }
     }
