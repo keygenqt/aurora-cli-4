@@ -19,6 +19,7 @@ Makes life easier for developers on Aurora OS.
 - Validate rpm package.
 - Install package to emulator.
 - Run package on emulator.
+- Docker-in-Docker support via `CROSS_CONTAINER_IN_CONTAINER` env variable.
 
 ### Install
 

@@ -51,6 +51,11 @@ impl Docker {
 
     pub fn run_container(&self, mount: &PathBuf) -> Result<(), Box<dyn Error>> {
         self.check_running_sys()?;
+        let mode = if env::var("CROSS_CONTAINER_IN_CONTAINER").is_ok() {
+            "-d"
+        } else {
+            "-itd"
+        };
         let result = Exec::command(
             "docker",
             [
@@ -60,7 +65,7 @@ impl Docker {
                 &self.container,
                 "-v",
                 &format!("{}:/project", path::windows_clear(&mount.to_string_lossy().to_string())),
-                "-itd",
+                mode,
                 &self.image,
             ],
         );
