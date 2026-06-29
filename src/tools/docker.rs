@@ -51,24 +51,29 @@ impl Docker {
 
     pub fn run_container(&self, mount: &PathBuf) -> Result<(), Box<dyn Error>> {
         self.check_running_sys()?;
-        let mode = if env::var("AURORA_CLI_CONTAINER_IN_CONTAINER").is_ok() {
-            "-d"
-        } else {
-            "-itd"
-        };
-        let result = Exec::command(
-            "docker",
-            [
-                "run",
-                "--rm",
-                "--name",
-                &self.container,
-                "-v",
-                &format!("{}:/project", path::windows_clear(&mount.to_string_lossy().to_string())),
-                mode,
-                &self.image,
-            ],
-        );
+        let is_container_in_container = env::var("AURORA_CLI_CONTAINER_IN_CONTAINER").is_ok();
+        let mode = if is_container_in_container { "-d" } else { "-itd" };
+
+        let mount_path = path::windows_clear(&mount.to_string_lossy().to_string());
+        let mount_arg = format!("{}:/project", mount_path);
+
+        let mut args: Vec<&str> = vec![
+            "run",
+            "--rm",
+            "--name",
+            &self.container,
+            "-v",
+            &mount_arg,
+            mode,
+            &self.image,
+        ];
+
+        if is_container_in_container {
+            args.push("sleep");
+            args.push("infinity");
+        }
+
+        let result = Exec::command("docker", &args);
         if result.is_err() {
             Err(format!("failed to run container from image '{}'", &self.image))?
         }
