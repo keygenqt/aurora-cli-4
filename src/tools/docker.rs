@@ -51,7 +51,7 @@ impl Docker {
 
     pub fn run_container(&self, mount: &PathBuf) -> Result<(), Box<dyn Error>> {
         self.check_running_sys()?;
-        let mode = if env::var("CROSS_CONTAINER_IN_CONTAINER").is_ok() {
+        let mode = if env::var("AURORA_CLI_CONTAINER_IN_CONTAINER").is_ok() {
             "-d"
         } else {
             "-itd"
