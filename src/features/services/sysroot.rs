@@ -1,3 +1,4 @@
+use std::env;
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
@@ -15,23 +16,35 @@ pub struct Sysroot {}
 
 impl Sysroot {
     pub fn upgrade() -> Result<(), Box<dyn Error>> {
-        let sysroot = &path::get_relative_path(&PathBuf::from(constants::SYSROOT_GLOBAL_DIR_PATH));
+        let sysroot_path = if let Ok(sysroot_env) = env::var("AURORA_SYSROOT") {
+            PathBuf::from(sysroot_env)
+        } else {
+            path::get_relative_path(&PathBuf::from(constants::SYSROOT_GLOBAL_DIR_PATH))
+        };
+        let sysroot = &sysroot_path;
         // Remove dir if exist
         if sysroot.exists() {
-            print_warning!("data found!");
-            match Confirm::new(&format!("Delete {}", sysroot.to_string_lossy()))
-                .with_default(false)
-                .prompt()
-            {
-                Ok(result) => {
-                    if result {
-                        print_info!("remove data: {}", sysroot.to_string_lossy());
-                        fs::remove_dir_all(sysroot)?
-                    } else {
-                        exit_info!("work has stopped")
+            let is_empty = fs::read_dir(sysroot)?.next().is_none();
+            if !is_empty {
+                if env::var("AURORA_CLI_CONTAINER").is_ok() {
+                    fs::remove_dir_all(sysroot)?;
+                } else {
+                    print_warning!("data found!");
+                    match Confirm::new(&format!("Delete {}", sysroot.to_string_lossy()))
+                        .with_default(false)
+                        .prompt()
+                    {
+                        Ok(result) => {
+                            if result {
+                                print_info!("remove data: {}", sysroot.to_string_lossy());
+                                fs::remove_dir_all(sysroot)?
+                            } else {
+                                exit_info!("work has stopped")
+                            }
+                        }
+                        Err(_) => exit_info!("work has stopped"),
                     }
                 }
-                Err(_) => exit_info!("work has stopped"),
             }
         }
         // Create folder for sysroot
